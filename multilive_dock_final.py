@@ -49,15 +49,30 @@ FIXED_SERVERS = {
 
 def detect_platform_and_id(input_str: str):
     text = input_str.strip()
+    # SOOP / 아프리카TV
     if any(domain in text for domain in ["sooplive.com", "soop.co.kr", "afreecatv.com"]):
         match = re.search(r"(?:play|ch|www)?\.?(?:sooplive\.com|soop\.co\.kr|afreecatv\.com)/([a-zA-Z0-9_]+)", text)
         bj_id = match.group(1) if match else text
         return "soop", bj_id
+
+    # 유튜브 (URL 또는 @핸들)
+    if any(domain in text for domain in ["youtube.com", "youtu.be"]) or text.startswith("@"):
+        if "youtube.com" in text or "youtu.be" in text:
+            handle_match = re.search(r"youtube\.com/(@[a-zA-Z0-9_\-\.]+)", text)
+            if handle_match:
+                return "youtube", handle_match.group(1)
+            ch_match = re.search(r"youtube\.com/(channel|c)/([a-zA-Z0-9_\-]+)", text)
+            if ch_match:
+                return "youtube", ch_match.group(2)
+            return "youtube", text
+        return "youtube", text
         
+    # 치지직 32자리 해시 ID
     chzzk_match = re.search(r"([a-fA-F0-9]{32})", text)
     if chzzk_match:
         return "chzzk", chzzk_match.group(1)
         
+    # 단순 영문/숫자면 SOOP ID 우선
     if re.match(r"^[a-zA-Z0-9_]+$", text):
         return "soop", text
 
@@ -97,6 +112,24 @@ def fetch_metadata(platform: str, channel_id: str):
                 "name": station.get("user_nick", channel_id),
                 "img_url": img_url,
                 "live_url": f"https://play.sooplive.com/{channel_id}"
+            }
+        elif platform == "youtube":
+            yt_id = channel_id if channel_id.startswith("@") or channel_id.startswith("UC") else f"@{channel_id}"
+            url = f"https://www.youtube.com/{yt_id}"
+            res = requests.get(url, headers=HEADERS, timeout=6)
+            html = res.text
+            
+            title_m = re.search(r'<meta property="og:title" content="([^"]+)"', html)
+            name = title_m.group(1) if title_m else yt_id
+            
+            img_m = re.search(r'<meta property="og:image" content="([^"]+)"', html)
+            img_url = img_m.group(1) if img_m else ""
+            
+            live_url = f"https://www.youtube.com/{yt_id}/live"
+            return {
+                "name": name,
+                "img_url": img_url,
+                "live_url": live_url
             }
     except Exception as e:
         print(f"[오류] 채널 메타데이터 조회 중 오류 발생: {e}")
@@ -201,6 +234,26 @@ class LiveCheckThread(QThread):
                         "is_open": str(channel_data.get("RESULT")) == "1",
                         "title": channel_data.get("TITLE", "")
                     }
+                elif platform == "youtube":
+                    yt_id = cid if cid.startswith("@") or cid.startswith("UC") else f"@{cid}"
+                    url = f"https://www.youtube.com/{yt_id}/live"
+                    res = requests.get(url, headers=HEADERS, timeout=6)
+                    text = res.text
+                    
+                    is_live = False
+                    if '"status":"LIVE"' in text or '"isLive":true' in text:
+                        is_live = True
+                    elif '"isLiveContent":true' in text and '"isLiveBroadcast":true' in text:
+                        is_live = True
+                    elif 'liveStreamability' in text and '"status":"LIVE"' in text:
+                        is_live = True
+
+                    title_m = re.search(r'<meta property="og:title" content="([^"]+)"', text)
+                    title = title_m.group(1) if title_m else ""
+                    results[key] = {
+                        "is_open": is_live,
+                        "title": title
+                    }
             except Exception:
                 results[key] = {"is_open": False, "title": ""}
         self.status_updated.emit(results)
@@ -290,7 +343,12 @@ class StreamerDockButton(QWidget):
 
     def update_status(self, is_live, title=""):
         self.is_live = is_live
-        platform_name = "치지직" if self.platform == "chzzk" else "SOOP"
+        if self.platform == "chzzk":
+            platform_name = "치지직"
+        elif self.platform == "soop":
+            platform_name = "SOOP"
+        else:
+            platform_name = "유튜브"
         self.setToolTip(f"[{platform_name} | {'방송 중' if is_live else '오프라인'}] {self.name}\n{title}")
         self.update()
 
@@ -329,7 +387,12 @@ class StreamerDockButton(QWidget):
             painter.setPen(Qt.PenStyle.NoPen)
             painter.drawEllipse(img_x, img_y, img_size, img_size)
 
-        theme_color = QColor("#00FFA3") if self.platform == "chzzk" else QColor("#0090FF")
+        if self.platform == "chzzk":
+            theme_color = QColor("#00FFA3")
+        elif self.platform == "soop":
+            theme_color = QColor("#0090FF")
+        else:
+            theme_color = QColor("#FF0000")
 
         if self.is_live:
             painter.setPen(QPen(theme_color, 2))
@@ -494,7 +557,7 @@ class MultiLiveDock(QWidget):
         self.adjustSize()
 
     def prompt_add_channel(self):
-        text, ok = QInputDialog.getText(self, "채널 추가", "치지직 또는 SOOP 방송국 URL / ID를 입력하세요:")
+        text, ok = QInputDialog.getText(self, "채널 추가", "치지직, SOOP 또는 유튜브 채널 URL / ID(@핸들)를 입력하세요:")
         if not ok or not text.strip():
             return
 
@@ -549,7 +612,13 @@ class MultiLiveDock(QWidget):
                 title = res["title"]
 
                 if not card.is_live and is_open:
-                    platform_kr = "치지직" if card.platform == "chzzk" else "SOOP"
+                    if card.platform == "chzzk":
+                        platform_kr = "치지직"
+                    elif card.platform == "soop":
+                        platform_kr = "SOOP"
+                    else:
+                        platform_kr = "유튜브"
+
                     self.tray.showMessage(
                         f"[{platform_kr}] 방송 시작! - {card.name}",
                         title,

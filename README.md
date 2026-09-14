@@ -15,6 +15,10 @@
 
 **LiveDock**은 웹 브라우저를 계속 켜놓거나 탭을 일일이 새로고침하지 않고도, 바탕화면 한구석에 작고 깔끔한 도크(Dock) 형태로 띄워두고 **선호하는 스트리머의 방송 시작 여부**와 **주요 스트리밍 플랫폼(치지직, SOOP, 유튜브)의 중계 서버 상태**를 한눈에 실시간 모니터링할 수 있는 윈도우용 경량 위젯입니다.
 
+<p align="center">
+  <img src="./image.png" alt="LiveDock 실행 화면" />
+</p>
+
 ---
 
 ## ✨ 주요 기능
@@ -30,12 +34,12 @@
 - **오프라인 상태**: 흑백 반투명 처리되어 시각적 피로도를 최소화합니다.
 - **방송 시작(온에어) 시**:
   - 시스템 트레이를 통해 **스트리머 이름과 방송 제목이 포함된 윈도우 알림** 발송
-  - 프로필 테두리에 플랫폼 고유 컬러(치지직: 민트, SOOP: 블루)가 점등되며 컬러 프로필로 활성화
+  - 프로필 테두리에 플랫폼 고유 컬러(**치지직: 민트**, **SOOP: 블루**, **유튜브: 레드**)가 점등되며 컬러 프로필로 활성화
 
 ### 3. 🖱️ 편리한 사용자 인터랙션 & 채널 관리
 - **좌클릭**: 해당 스트리머의 실시간 방송 페이지(웹 브라우저)로 원클릭 즉시 이동
 - **우클릭**: 간편한 채널 삭제 컨텍스트 메뉴 제공
-- **`+` 버튼**: 채널 URL 전체(`https://chzzk.naver.com/live/...` 또는 `https://play.sooplive.com/...`)나 고유 ID만 복사해 붙여넣으면, 플랫폼을 자동 판별하여 프로필 썸네일과 닉네임을 자동 연동 등록
+- **`+` 버튼**: 채널 URL 전체 또는 고유 ID / 핸들(@)만 복사해 붙여넣으면, 플랫폼을 자동 판별하여 프로필 썸네일과 닉네임을 자동 연동 등록
 
 ### 4. 🪟 미니멀 프레임리스(Frameless) 플로팅 덱 UI
 - 불필요한 타이틀바 없는 현대적인 다크 테마 라운드 디자인
@@ -51,7 +55,7 @@
 | :--- | :---: | :---: | :--- |
 | **치지직 (CHZZK)** | O (공통 API 응답속도) | O (Live Status API) | 채널 URL 또는 32자리 고유 해시 ID |
 | **SOOP (구 아프리카TV)** | O (플레이어 세션 API) | O (Player Live API) | 방송국 URL 또는 방송국 스트리머 ID |
-| **유튜브 (YouTube)** | O (GoogleVideo 리포팅) | - | 상단 서버 상태 인디케이터 전용 |
+| **유튜브 (YouTube)** | O (GoogleVideo 리포팅) | O (Live Stream 감지) | 채널 URL 또는 `@핸들` / 채널 ID |
 
 ---
 
@@ -62,36 +66,10 @@
 2. 별도의 파이썬 설치 없이 다운로드한 `LiveDock.exe`를 바로 실행하면 동작합니다.
 
 ### 방법 2. 소스 코드로 직접 실행
-
-#### 필수 요구사항
-- Python 3.9 이상
-
 ```bash
-# 1. 저장소 복제 (Clone)
-git clone https://github.com/사용자계정/저장소이름.git
-cd 저장소이름
-
-# 2. 필수 라이브러리 설치
 pip install -r requirements.txt
-
-# 3. 프로그램 실행
 python multilive_dock_final.py
 ```
-
----
-
-## 🛠️ 실행 파일(.exe) 직접 빌드하기
-
-직접 단일 실행 파일로 패키징하려면 `PyInstaller`를 사용할 수 있습니다:
-
-```bash
-# PyInstaller 설치
-pip install pyinstaller
-
-# 단일 파일(Onefile) 빌드 실행
-pyinstaller --noconfirm --onefile --windowed --icon "app_icon.ico" --add-data "app_icon.ico;." --name "LiveDock" multilive_dock_final.py
-```
-> 빌드가 완료되면 `dist/` 폴더 내에 `LiveDock.exe` 실행 파일이 생성됩니다.
 
 ---
 
