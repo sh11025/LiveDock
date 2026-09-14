@@ -1,0 +1,20 @@
+# Python 캐시 및 가상환경
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env/
+
+# PyInstaller 빌드 결과물 및 대용량 실행 파일
+build/
+dist/
+*.exe
+
+# 사용자 개인 데이터 (등록한 채널 목록)
+channels.json
+
+# IDE 및 OS 설정 파일
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini

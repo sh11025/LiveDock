@@ -1,0 +1,6 @@
+multilive_dock_final.py	전체코드
+servers.json		특정서버 상태 확인하기용(유튜브,치지직,soop)
+channels.json		내가 등록한 채널 확인
+dist 폴더안에 exe 파일 실행(이것만 있어도 문제 없음)
+
+LiveDock.exe - 서버 상태확인, 서버 빨간색 되면 알람
